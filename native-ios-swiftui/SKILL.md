@@ -214,10 +214,18 @@ Info.plist, and directory structure.
 5. Write `AppName/Resources/AppName.entitlements` (Sign in with Apple, etc.)
 6. Write `project.yml` at the project root
 7. Run `xcodegen generate` to create the `.xcodeproj`
-8. Open with `open AppName.xcodeproj`
+8. Build the project from the command line and verify it compiles:
+   ```bash
+   xcodebuild -project AppName.xcodeproj -scheme AppName -sdk iphonesimulator \
+     -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build 2>&1
+   ```
+9. If the build fails, read the errors, fix them, and rebuild. Repeat until the build succeeds.
+   Common issues: missing imports, typos in type names, SwiftData model issues, concurrency errors.
+10. Only after a clean build, open with `open AppName.xcodeproj`
 
-The user should be able to build and run immediately after step 8. No dragging files,
-no manual capability toggling, no project settings changes.
+**The project is not done until it builds successfully.** Never hand off a project to the user
+with compile errors. Always run the build, fix all errors, and confirm a clean build before
+telling the user the project is ready.
 
 **Assets.xcassets minimum** — always create this so the project compiles:
 

@@ -28,6 +28,33 @@ prevents those mistakes and channels effort into what actually matters.
 
 ---
 
+## First-time project setup — ask the user
+
+Before writing any code in a new project, ask the user these questions and wait for answers:
+
+1. **Apple Developer account type?**
+   - **Paid ($99/year)** — full capabilities: Sign in with Apple, Push Notifications, App Groups, StoreKit testing on device
+   - **Personal (free)** — limited: no Sign in with Apple, no push notifications, no App Groups. Use mock auth for testing, skip entitlements that require paid account.
+
+2. **Does the app need a backend API?**
+   - **Yes** — set up the full `APIClient` actor + `AuthManager` with token refresh
+   - **No (offline-only)** — skip networking layer, use SwiftData only
+
+3. **Does the app need payments/subscriptions?**
+   - **Yes** — set up StoreKit 2 with `.storekit` config file
+   - **No** — skip `EntitlementManager` and paywall
+
+Store the answers and adapt the project accordingly:
+
+**Personal (free) account adaptations:**
+- Remove `com.apple.developer.applesignin` from entitlements
+- Replace Sign in with Apple with a simple mock/email auth flow for testing
+- Skip push notification setup
+- Add a comment: `// TODO: Replace mock auth with Sign in with Apple when using paid Apple Developer account`
+- StoreKit sandbox testing still works on simulator without paid account
+
+---
+
 ## Pre-flight checklist (read before every change)
 
 Before implementing anything, verify:
@@ -78,6 +105,7 @@ bars, toolbars, sheets, popovers, menus, alerts, search bars, toggles, sliders, 
 free. Custom glass is the exception.
 
 Read `references/design-system.md` before building any screen. It covers:
+
 - What you get for free (just recompile)
 - When and how to apply custom `.glassEffect()`
 - The `GlassEffectContainer` grouping rule
@@ -94,6 +122,7 @@ Good iOS animations are transforms and opacity — they're GPU-cheap. Bad animat
 recalculations inside scroll views.
 
 Read `references/animations.md` before adding any animation. Key rules:
+
 - Use `.animation(_:value:)` for declarative, `withAnimation` for imperative
 - Animate when value lands, not when request fires
 - Use `matchedGeometryEffect` for hero transitions between two representations
@@ -109,6 +138,7 @@ One `APIClient` actor. One `Endpoint<R: Decodable & Sendable>` struct. One `Auth
 with single-flight token refresh.
 
 Read `references/networking.md` for the complete implementation including:
+
 - The generic `APIClient` actor pattern
 - Auth token refresh with single in-flight `Task` (prevents duplicate refreshes)
 - Error handling with `APIError` enum and `ViewState<T>`
@@ -123,6 +153,7 @@ Sign in with Apple is mandatory if you offer any third-party login (App Store Gu
 Make it the primary path regardless — it's the smoothest UX on iOS.
 
 Read `references/auth.md` for:
+
 - Complete Sign in with Apple implementation with nonce
 - Critical gotcha: Apple sends name/email only on first sign-in
 - Server-side verification requirements
@@ -137,6 +168,7 @@ SwiftData is the default for new iOS 17+ projects. Use `@Model` classes, wire up
 `.modelContainer(for:)` in your App.
 
 Read `references/data.md` for:
+
 - Model definition patterns with `@Attribute` and `@Relationship`
 - When to fall back to Core Data (shared/public CloudKit, complex migrations)
 - Offline-first sync pattern: read SwiftData -> async fetch -> write back
@@ -150,6 +182,7 @@ Use the SwiftUI-native StoreKit views. `SubscriptionStoreView` handles products,
 localization, restore, and purchase in one component.
 
 Read `references/payments.md` for:
+
 - `SubscriptionStoreView` paywall implementation
 - `StoreView` and `ProductView` for non-subscription products
 - Listening to `Transaction.updates` for entitlement changes
@@ -165,6 +198,7 @@ Swift 6 language mode with complete strict concurrency is the baseline. Region-b
 cuts annotation noise by 50-70% compared to Swift 5.10.
 
 Rules:
+
 - View models: `@MainActor @Observable`
 - Services: `actor`
 - DTOs: `struct` conforming to `Sendable` and `Codable`
@@ -179,20 +213,20 @@ Rules:
 
 These will be caught in review. Don't ship them:
 
-| Anti-pattern | Why | Fix |
-|---|---|---|
-| `.glassEffect()` on list rows or cards | Apple explicitly forbids glass on content | Remove it; content stays flat |
-| Glass on glass | "Always avoid glass on glass" — Apple | One glass layer only |
-| `ObservableObject` + `@Published` in new code | `@Observable` tracks per-property, massive perf win | Migrate to `@Observable` |
-| `LazyVStack` for >50 homogeneous rows | 10x slower than `List` in benchmarks | Use `List` |
-| `withAnimation { Task { await ... } }` | Animation transaction gone by await | `withAnimation` after data lands |
-| `@unchecked Sendable` without lock | Data race waiting to happen | Use actor or add documented lock |
-| `try!` or force-unwrap on network data | Crash in production | Proper error handling |
-| `DispatchQueue.main.async` in async code | Swift 6 anti-pattern | `@MainActor` isolation |
-| `.onAppear { Task { } }` | No auto-cancellation on disappear | `.task { }` modifier |
-| `Data(contentsOf:)` on URL synchronously | Blocks calling thread | `URLSession` async |
-| Tinting every glass element | "When every element is tinted, nothing stands out" | Tint only primary CTA |
-| Mixing Regular and Clear glass variants | "They should never be mixed" — Apple | Pick one per context |
+| Anti-pattern                                  | Why                                                 | Fix                              |
+| --------------------------------------------- | --------------------------------------------------- | -------------------------------- |
+| `.glassEffect()` on list rows or cards        | Apple explicitly forbids glass on content           | Remove it; content stays flat    |
+| Glass on glass                                | "Always avoid glass on glass" — Apple               | One glass layer only             |
+| `ObservableObject` + `@Published` in new code | `@Observable` tracks per-property, massive perf win | Migrate to `@Observable`         |
+| `LazyVStack` for >50 homogeneous rows         | 10x slower than `List` in benchmarks                | Use `List`                       |
+| `withAnimation { Task { await ... } }`        | Animation transaction gone by await                 | `withAnimation` after data lands |
+| `@unchecked Sendable` without lock            | Data race waiting to happen                         | Use actor or add documented lock |
+| `try!` or force-unwrap on network data        | Crash in production                                 | Proper error handling            |
+| `DispatchQueue.main.async` in async code      | Swift 6 anti-pattern                                | `@MainActor` isolation           |
+| `.onAppear { Task { } }`                      | No auto-cancellation on disappear                   | `.task { }` modifier             |
+| `Data(contentsOf:)` on URL synchronously      | Blocks calling thread                               | `URLSession` async               |
+| Tinting every glass element                   | "When every element is tinted, nothing stands out"  | Tint only primary CTA            |
+| Mixing Regular and Clear glass variants       | "They should never be mixed" — Apple                | Pick one per context             |
 
 ---
 

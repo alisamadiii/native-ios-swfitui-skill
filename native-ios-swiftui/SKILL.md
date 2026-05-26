@@ -32,6 +32,9 @@ prevents those mistakes and channels effort into what actually matters.
 
 Before implementing anything, verify:
 
+0. **Am I writing code in the current project directory?** All code belongs inside the existing
+   project. Never create a new Xcode project or folder outside the current working directory.
+   If the project is empty, create files directly inside it.
 1. **Am I using a native component where one exists?** Check `references/design-system.md` for the
    component catalog. SwiftUI has built-in solutions for navigation, tabs, search, toolbars, sheets,
    alerts, menus, toggles, sliders, pickers, and subscription paywalls. Use them.

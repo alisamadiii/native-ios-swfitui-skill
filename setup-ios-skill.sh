@@ -43,6 +43,7 @@ if [ ! -f "CLAUDE.md" ]; then
 
 ## Rules
 
+- **All code goes in the current project directory.** Never create a new folder or Xcode project outside this directory. Use the existing Xcode project and folder structure. If the project is empty, create files directly inside it — do not scaffold a separate project alongside it.
 - Read the `native-ios-swiftui` skill before implementing any view, animation, networking, auth, or payment code.
 - Use native SwiftUI components first. Only customize when native falls short.
 - Liquid Glass goes on navigation layer only — never on content rows or cards. Never glass on glass.

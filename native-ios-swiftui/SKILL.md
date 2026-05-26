@@ -44,14 +44,39 @@ Before writing any code in a new project, ask the user these questions and wait 
    - **Yes** — set up StoreKit 2 with `.storekit` config file
    - **No** — skip `EntitlementManager` and paywall
 
+4. **What is your name or company identifier?** (e.g., "alisamadi", "mycompany")
+   - Used for bundle ID: `com.<identifier>.<appname>`
+   - Never use generic bundle IDs like `com.streaks.app` or `com.appname.app` — they are already
+     claimed globally and will fail provisioning. Always use the developer's own identifier.
+
 Store the answers and adapt the project accordingly:
 
 **Personal (free) account adaptations:**
-- Remove `com.apple.developer.applesignin` from entitlements
-- Replace Sign in with Apple with a simple mock/email auth flow for testing
-- Skip push notification setup
-- Add a comment: `// TODO: Replace mock auth with Sign in with Apple when using paid Apple Developer account`
+- **Never** include `com.apple.developer.applesignin` in the entitlements file — Personal teams
+  cannot provision this capability. Xcode will fail with: "Cannot create a iOS Development
+  provisioning profile... Personal development teams do not support the Sign in with Apple capability."
+- **Never** include push notification entitlements — same restriction.
+- Replace Sign in with Apple with a `#if DEBUG` mock auth flow:
+  ```swift
+  // In your auth view, provide a dev-mode bypass:
+  #if DEBUG
+  Button("Dev Sign In") {
+      // Skip real auth, create a mock user session
+      Task { await authState.mockSignIn() }
+  }
+  #endif
+  ```
+- Add a comment at the top of the auth view:
+  `// TODO: Replace mock auth with Sign in with Apple when using paid Apple Developer account`
 - StoreKit sandbox testing still works on simulator without paid account
+- The entitlements file should be **empty** (or omitted entirely) for personal teams — do not
+  include any capabilities that require paid enrollment
+
+**Bundle ID rules (all account types):**
+- Format: `com.<developer-identifier>.<appname>` (e.g., `com.alisamadi.streaks`)
+- Never use generic prefixes like `com.streaks`, `com.app`, `com.example`
+- The identifier must be unique across all Apple developers globally
+- Ask the user for their identifier if not already known
 
 ---
 

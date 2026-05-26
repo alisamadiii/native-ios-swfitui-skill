@@ -38,10 +38,13 @@ After `xcodegen generate`, the project is ready to build and run. No manual Xcod
 
 This is the standard template for an iOS 26 SwiftUI app. Adapt the name and sources.
 
+**Important:** Replace `<developer-id>` with the user's actual identifier (ask them).
+Never use generic bundle IDs — they will fail provisioning because they're already claimed.
+
 ```yaml
 name: AppName
 options:
-  bundleIdPrefix: com.yourcompany
+  bundleIdPrefix: com.<developer-id>
   deploymentTarget:
     iOS: "26.0"
   xcodeVersion: "26.0"
@@ -65,7 +68,7 @@ targets:
           - "**/.DS_Store"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.appname
+        PRODUCT_BUNDLE_IDENTIFIER: com.<developer-id>.appname
         INFOPLIST_FILE: AppName/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: AppName/Resources/AppName.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -100,7 +103,7 @@ targets:
         com.apple.developer.applesignin:
           - Default
         com.apple.security.application-groups:
-          - group.com.yourcompany.appname
+          - group.com.<developer-id>.appname
 ```
 
 ## 4. Entitlements file
@@ -133,7 +136,7 @@ Create at `AppName/Resources/Info.plist` — only needed for custom keys:
 <dict>
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array>
-        <string>com.yourcompany.appname.refresh</string>
+        <string>com.<developer-id>.appname.refresh</string>
     </array>
     <key>UIBackgroundModes</key>
     <array>
@@ -175,7 +178,7 @@ xcodebuild -project AppName.xcodeproj -scheme AppName -sdk iphonesimulator -dest
 open -a Simulator
 xcrun simctl boot "iPhone 16 Pro" 2>/dev/null
 xcrun simctl install booted build/Build/Products/Debug-iphonesimulator/AppName.app
-xcrun simctl launch booted com.yourcompany.appname
+xcrun simctl launch booted com.<developer-id>.appname
 ```
 
 ## Full directory structure after setup

@@ -66,12 +66,17 @@ Models/         — @Model (SwiftData) + Sendable DTOs
 
 ## Build & run
 
-```bash
-# Build
-xcodebuild -scheme <SCHEME> -sdk iphonesimulator build
+Projects use XcodeGen. The `.xcodeproj` is generated from `project.yml`.
 
-# Test
-xcodebuild -scheme <SCHEME> -sdk iphonesimulator test
+```bash
+# Generate project (after any project.yml change)
+xcodegen generate
+
+# Open in Xcode
+open *.xcodeproj
+
+# Build from CLI
+xcodebuild -project *.xcodeproj -scheme <SCHEME> -sdk iphonesimulator build
 ```
 CLAUDEEOF
     echo "CLAUDE.md created"

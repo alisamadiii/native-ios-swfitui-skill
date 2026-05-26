@@ -32,9 +32,9 @@ prevents those mistakes and channels effort into what actually matters.
 
 Before implementing anything, verify:
 
-0. **Am I writing code in the current project directory?** All code belongs inside the existing
-   project. Never create a new Xcode project or folder outside the current working directory.
-   If the project is empty, create files directly inside it.
+0. **Am I writing code in the current project directory?** All code belongs inside the current
+   working directory. Never create folders outside it. For new projects, use XcodeGen to generate
+   a buildable `.xcodeproj` — see "Project setup" section and `references/project-setup.md`.
 1. **Am I using a native component where one exists?** Check `references/design-system.md` for the
    component catalog. SwiftUI has built-in solutions for navigation, tabs, search, toolbars, sheets,
    alerts, menus, toggles, sliders, pickers, and subscription paywalls. Use them.
@@ -196,15 +196,46 @@ These will be caught in review. Don't ship them:
 
 ---
 
-## Project setup checklist (new projects)
+## Project setup — XcodeGen (new projects)
 
-When starting a new iOS project:
+The project must be fully buildable from the command line. No manual Xcode configuration.
+Use XcodeGen to generate the `.xcodeproj` from a `project.yml` file.
 
-1. Xcode 26, iOS 26 deployment target, Swift 6 language mode
-2. Enable capabilities: Push Notifications, Sign in with Apple, Background Modes (App Refresh + Remote Notifications)
-3. Create `.storekit` configuration file for payment testing
-4. Set up folder structure: Views/, ViewModels/, Services/, Models/
-5. Create `APIClient` actor and `AuthManager` actor
-6. Add `@Model` classes for SwiftData
-7. Wire `.modelContainer(for:)` in App.swift
-8. Build with native components first — customize only when native falls short
+Read `references/project-setup.md` for the complete `project.yml` template, entitlements,
+Info.plist, and directory structure.
+
+**The sequence — follow this exactly for every new project:**
+
+1. Check XcodeGen is installed: `which xcodegen || brew install xcodegen`
+2. Create folder structure inside the current project directory:
+   `AppName/{Models,DTOs,Services,Protocols,ViewModels,Views,Resources}`
+3. Write all Swift source files
+4. Write `AppName/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json`
+5. Write `AppName/Resources/AppName.entitlements` (Sign in with Apple, etc.)
+6. Write `project.yml` at the project root
+7. Run `xcodegen generate` to create the `.xcodeproj`
+8. Open with `open AppName.xcodeproj`
+
+The user should be able to build and run immediately after step 8. No dragging files,
+no manual capability toggling, no project settings changes.
+
+**Assets.xcassets minimum** — always create this so the project compiles:
+
+```json
+// AppName/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json
+{
+  "images": [{"filename": "","idiom": "universal","platform": "ios","size": "1024x1024"}],
+  "info": {"author": "xcode", "version": 1}
+}
+
+// AppName/Resources/Assets.xcassets/Contents.json
+{
+  "info": {"author": "xcode", "version": 1}
+}
+
+// AppName/Resources/Assets.xcassets/AccentColor.colorset/Contents.json
+{
+  "colors": [{"idiom": "universal"}],
+  "info": {"author": "xcode", "version": 1}
+}
+```

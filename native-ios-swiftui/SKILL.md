@@ -292,6 +292,7 @@ These will be caught in review. Don't ship them:
 | Custom styled text inputs                     | Looks non-native, breaks iOS feel                   | Native `Form` + `TextField`      |
 | SF Symbol grid as avatar/image picker         | Not personal, users want their own photos           | `PhotosPicker` from photo album  |
 | Buttons with different heights in same group  | Inconsistent, looks unpolished                      | Shared `buttonHeight` constant   |
+| Missing `UILaunchScreen_Generation` in yml   | App runs in compatibility mode — small window, bars | Add `INFOPLIST_KEY_UILaunchScreen_Generation: true` |
 | Tinting every glass element                   | "When every element is tinted, nothing stands out"  | Tint only primary CTA            |
 | Mixing Regular and Clear glass variants       | "They should never be mixed" — Apple                | Pick one per context             |
 

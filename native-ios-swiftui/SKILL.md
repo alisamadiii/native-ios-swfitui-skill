@@ -40,11 +40,16 @@ Before writing any code in a new project, ask the user these questions and wait 
    - **Yes** — set up the full `APIClient` actor + `AuthManager` with token refresh
    - **No (offline-only)** — skip networking layer, use SwiftData only
 
-3. **Does the app need payments/subscriptions?**
+3. **Does the app need authentication?**
+   - **Yes** — ask which providers: Apple, Google, or both. Add sign-in UI on the last onboarding
+     page. Sign in with Apple is required if any third-party login is offered (App Store Guideline 4.8).
+   - **No** — skip auth entirely, onboarding ends with a Continue button that goes straight to home.
+
+4. **Does the app need payments/subscriptions?**
    - **Yes** — set up StoreKit 2 with `.storekit` config file
    - **No** — skip `EntitlementManager` and paywall
 
-4. **What is your name or company identifier?** (e.g., "alisamadi", "mycompany")
+5. **What is your name or company identifier?** (e.g., "alisamadi", "mycompany")
    - Used for bundle ID: `com.<identifier>.<appname>`
    - Never use generic bundle IDs like `com.streaks.app` or `com.appname.app` — they are already
      claimed globally and will fail provisioning. Always use the developer's own identifier.
@@ -138,6 +143,29 @@ Read `references/design-system.md` before building any screen. It covers:
 - Toolbar organization with `ToolbarSpacer`
 - Tinting rules (only primary CTAs)
 - Accessibility (Reduce Transparency, Increase Contrast, Reduce Motion — all automatic)
+
+---
+
+## Onboarding — rules
+
+Onboarding is a full-screen flow, not a sheet. It must be the first thing users see.
+
+1. **Full-screen, not a sheet.** Use a conditional root view (`if !hasOnboarded { OnboardingView() } else { MainTabView() }`). Never present onboarding as `.sheet` or `.fullScreenCover` — the home screen should not be visible behind it.
+2. **Always show a Continue button.** Fixed at the bottom of every page. Users won't discover swipe-to-advance on their own. Style: `.buttonStyle(.glassProminent)`, `.tint(.blue)`, `.buttonBorderShape(.roundedRectangle(radius: 19))`, full-width, with `.sensoryFeedback(.increase, trigger:)` for haptic feedback.
+3. **Last page = sign-in (if auth enabled).** Show Sign in with Apple (and Google if requested) instead of Continue. If auth is not needed, last page shows a final Continue button.
+4. **Sign-in buttons must be consistent.** Don't use `SignInWithAppleButton` — it controls its own font size and height, making it impossible to match other buttons. Instead, build custom buttons for all auth options using the same shared constants (`buttonHeight`, `buttonRadius`), same font (`.system(size: 17, weight: .medium)`), and same structure (`HStack` with icon + text, `frame(maxWidth: .infinity)`, `frame(height:)`, `background()`, `clipShape(RoundedRectangle)`). Apple = black background + `apple.logo` SF Symbol. Google = white background. Dev = blue background.
+5. **Inline loading on the tapped button.** When user taps a sign-in button, replace that button's label with a `ProgressView` spinner inside the same button frame — don't change the page layout. Disable all other buttons (`.disabled(isLoading)`). Track which button was tapped with an enum (`SignInSource`). After 1-2s delay, complete onboarding.
+6. **Transition to home: crossfade.** When onboarding completes, use `withAnimation(.easeInOut(duration: 0.5))` to toggle the `hasOnboarded` flag. The conditional root view gives you a smooth crossfade — onboarding fades out, home fades in. No abrupt cut.
+7. **Persist completion.** Store `hasOnboarded` in `@AppStorage("hasOnboarded")` so it never shows again after completion.
+
+---
+
+## Settings — rules
+
+1. **Profile edit = native Form sheet.** Tap the account row → `.sheet` with a `Form` inside `NavigationStack`. Use native `Section` grouping, native `TextField` (no custom styling). Cancel + Save in toolbar. `.presentationDetents([.large])`.
+2. **Avatar = PhotosPicker.** Use `PhotosPicker(selection:matching:.images)` for avatar — user picks from their photo album. Show circular preview with a camera overlay icon. Store image as `Data` (not SF Symbols). Placeholder: `person.circle.fill` in gray.
+3. **Subscription = custom animated sheet.** Don't just wrap `SubscriptionStoreView` in a sheet — build a custom paywall with: hero icon with `.symbolEffect(.pulse)`, staggered feature list animations, plan picker cards (monthly/yearly with savings badge), gradient CTA button with inline loading spinner, manage/restore links, and legal text. Use `.presentationDetents([.large])`.
+4. **Inline loading on purchase button.** Same pattern as onboarding sign-in: spinner replaces button label, button stays in place, other controls disabled.
 
 ---
 
@@ -250,6 +278,12 @@ These will be caught in review. Don't ship them:
 | `DispatchQueue.main.async` in async code      | Swift 6 anti-pattern                                | `@MainActor` isolation           |
 | `.onAppear { Task { } }`                      | No auto-cancellation on disappear                   | `.task { }` modifier             |
 | `Data(contentsOf:)` on URL synchronously      | Blocks calling thread                               | `URLSession` async               |
+| Onboarding as `.sheet`/`.fullScreenCover`     | Home visible behind it, feels like modal not flow   | Conditional root view            |
+| Onboarding page without Continue button       | Users won't discover swipe gesture                  | Always show bottom CTA           |
+| `SignInWithAppleButton` mixed with custom btns| Uncontrollable font/height breaks consistency       | Custom button with `apple.logo`  |
+| Full-page loading spinner on auth             | Jarring layout shift, hides context                 | Inline spinner inside tapped btn |
+| Custom styled text fields in profile edit     | Looks non-native, breaks iOS feel                   | Native `Form` + `TextField`      |
+| SF Symbol grid for avatar picker              | Not personal, users want their own photos           | `PhotosPicker` from photo album  |
 | Tinting every glass element                   | "When every element is tinted, nothing stands out"  | Tint only primary CTA            |
 | Mixing Regular and Clear glass variants       | "They should never be mixed" — Apple                | Pick one per context             |
 

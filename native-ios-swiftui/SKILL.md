@@ -146,26 +146,33 @@ Read `references/design-system.md` before building any screen. It covers:
 
 ---
 
-## Onboarding — rules
+## UX patterns — apply everywhere
 
-Onboarding is a full-screen flow, not a sheet. It must be the first thing users see.
+These rules apply to every screen in the app, not just one flow.
 
-1. **Full-screen, not a sheet.** Use a conditional root view (`if !hasOnboarded { OnboardingView() } else { MainTabView() }`). Never present onboarding as `.sheet` or `.fullScreenCover` — the home screen should not be visible behind it.
-2. **Always show a Continue button.** Fixed at the bottom of every page. Users won't discover swipe-to-advance on their own. Style: `.buttonStyle(.glassProminent)`, `.tint(.blue)`, `.buttonBorderShape(.roundedRectangle(radius: 19))`, full-width, with `.sensoryFeedback(.increase, trigger:)` for haptic feedback.
-3. **Last page = sign-in (if auth enabled).** Show Sign in with Apple (and Google if requested) instead of Continue. If auth is not needed, last page shows a final Continue button.
-4. **Sign-in buttons must be consistent.** Don't use `SignInWithAppleButton` — it controls its own font size and height, making it impossible to match other buttons. Instead, build custom buttons for all auth options using the same shared constants (`buttonHeight`, `buttonRadius`), same font (`.system(size: 17, weight: .medium)`), and same structure (`HStack` with icon + text, `frame(maxWidth: .infinity)`, `frame(height:)`, `background()`, `clipShape(RoundedRectangle)`). Apple = black background + `apple.logo` SF Symbol. Google = white background. Dev = blue background.
-5. **Inline loading on the tapped button.** When user taps a sign-in button, replace that button's label with a `ProgressView` spinner inside the same button frame — don't change the page layout. Disable all other buttons (`.disabled(isLoading)`). Track which button was tapped with an enum (`SignInSource`). After 1-2s delay, complete onboarding.
-6. **Transition to home: crossfade.** When onboarding completes, use `withAnimation(.easeInOut(duration: 0.5))` to toggle the `hasOnboarded` flag. The conditional root view gives you a smooth crossfade — onboarding fades out, home fades in. No abrupt cut.
-7. **Persist completion.** Store `hasOnboarded` in `@AppStorage("hasOnboarded")` so it never shows again after completion.
+1. **Inline button loading.** Any button that triggers an async action (sign-in, purchase, save, submit, sync) must show a `ProgressView` spinner **inside the button**, replacing its label. The button frame stays the same size — no layout shift. Disable all sibling buttons while loading (`.disabled(isLoading)`). Track which button was tapped with an enum or optional state so only the tapped button shows the spinner.
+2. **Consistent button sizing.** When multiple buttons appear together, they must share the same height, corner radius, and font. Define shared constants (`buttonHeight`, `buttonRadius`) and apply to every button in the group. Never mix `SignInWithAppleButton` with custom buttons — it controls its own font/height. Build all buttons custom with the same structure: `HStack` with icon + text, `.frame(maxWidth: .infinity)`, `.frame(height:)`, `.background()`, `.clipShape(RoundedRectangle)`.
+3. **Primary CTA style.** For the main action button on any screen: `.buttonStyle(.glassProminent)`, `.tint(.blue)`, `.buttonBorderShape(.roundedRectangle(radius: 19))`, `.sensoryFeedback(.increase, trigger:)`.
+4. **Native forms for data entry.** Any screen where users edit fields (profile, settings, preferences) must use `Form` with `Section` grouping and native `TextField` — no custom styled inputs. Cancel + Save in toolbar.
+5. **PhotosPicker for user images.** Anywhere users pick a photo (avatar, profile picture), use `PhotosPicker(selection:matching:.images)`. Show circular preview with camera overlay icon. Store as `Data`. Placeholder: `person.circle.fill` in gray. Never use SF Symbol grids as avatar pickers.
+6. **Sheet presentation.** Edit/detail sheets use `.presentationDetents([.large])` and `.presentationDragIndicator(.visible)`. Always wrap content in `NavigationStack` with toolbar cancel/save actions.
 
 ---
 
-## Settings — rules
+## Onboarding — flow
 
-1. **Profile edit = native Form sheet.** Tap the account row → `.sheet` with a `Form` inside `NavigationStack`. Use native `Section` grouping, native `TextField` (no custom styling). Cancel + Save in toolbar. `.presentationDetents([.large])`.
-2. **Avatar = PhotosPicker.** Use `PhotosPicker(selection:matching:.images)` for avatar — user picks from their photo album. Show circular preview with a camera overlay icon. Store image as `Data` (not SF Symbols). Placeholder: `person.circle.fill` in gray.
-3. **Subscription = custom animated sheet.** Don't just wrap `SubscriptionStoreView` in a sheet — build a custom paywall with: hero icon with `.symbolEffect(.pulse)`, staggered feature list animations, plan picker cards (monthly/yearly with savings badge), gradient CTA button with inline loading spinner, manage/restore links, and legal text. Use `.presentationDetents([.large])`.
-4. **Inline loading on purchase button.** Same pattern as onboarding sign-in: spinner replaces button label, button stays in place, other controls disabled.
+1. **Full-screen, not a sheet.** Use a conditional root view (`if !hasOnboarded { OnboardingView() } else { MainTabView() }`). Never `.sheet` or `.fullScreenCover` — home should not be visible behind it.
+2. **Always show a Continue button** fixed at the bottom of every page. Users won't discover swipe-to-advance. Use the primary CTA style (see UX patterns rule 3).
+3. **Last page = sign-in (if auth enabled).** Show Apple/Google sign-in buttons. If no auth, show a final "Get Started" button.
+4. **Crossfade to home.** `withAnimation(.easeInOut(duration: 0.5))` to toggle `hasOnboarded`. Smooth crossfade via the conditional root view.
+5. **Persist completion.** `@AppStorage("hasOnboarded")` — never shows again.
+
+---
+
+## Settings — flow
+
+1. **Profile edit.** Tap account row → `.sheet` with profile form (see UX patterns rules 4-6). Fields: first name, last name, avatar photo.
+2. **Subscription.** Custom animated paywall sheet — hero icon with `.symbolEffect(.pulse)`, staggered feature list animations, plan picker cards (monthly/yearly with savings badge), gradient CTA with inline loading (see UX patterns rule 1), manage/restore links, legal text.
 
 ---
 
@@ -281,9 +288,10 @@ These will be caught in review. Don't ship them:
 | Onboarding as `.sheet`/`.fullScreenCover`     | Home visible behind it, feels like modal not flow   | Conditional root view            |
 | Onboarding page without Continue button       | Users won't discover swipe gesture                  | Always show bottom CTA           |
 | `SignInWithAppleButton` mixed with custom btns| Uncontrollable font/height breaks consistency       | Custom button with `apple.logo`  |
-| Full-page loading spinner on auth             | Jarring layout shift, hides context                 | Inline spinner inside tapped btn |
-| Custom styled text fields in profile edit     | Looks non-native, breaks iOS feel                   | Native `Form` + `TextField`      |
-| SF Symbol grid for avatar picker              | Not personal, users want their own photos           | `PhotosPicker` from photo album  |
+| Full-page spinner replacing entire screen     | Jarring layout shift, hides context                 | Inline spinner inside tapped btn |
+| Custom styled text inputs                     | Looks non-native, breaks iOS feel                   | Native `Form` + `TextField`      |
+| SF Symbol grid as avatar/image picker         | Not personal, users want their own photos           | `PhotosPicker` from photo album  |
+| Buttons with different heights in same group  | Inconsistent, looks unpolished                      | Shared `buttonHeight` constant   |
 | Tinting every glass element                   | "When every element is tinted, nothing stands out"  | Tint only primary CTA            |
 | Mixing Regular and Clear glass variants       | "They should never be mixed" — Apple                | Pick one per context             |
 
